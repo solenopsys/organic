@@ -2,7 +2,7 @@ const std = @import("std");
 
 const builtin = @import("builtin");
 
-const cbor = @import("cbor.zig");
+const cbor = @import("../tools/cbor.zig");
 
 // Global variable for host
 var HOST: []const u8 = "http://localhost";
@@ -100,11 +100,6 @@ pub fn setMeta(allocator: std.mem.Allocator, hash: []const u8, meta: cbor.CborVa
     const key = try std.fmt.allocPrint(allocator, "meta.{s}", .{hash});
     defer allocator.free(key);
 
-    // print items
-
-    std.debug.print("key: {s}\n", .{key});
-    std.debug.print("content: {s}\n", .{buf.items});
-
     const result = try save(allocator, key, buf.items);
     defer allocator.free(result);
 
@@ -132,7 +127,12 @@ pub fn uploadFile(allocator: std.mem.Allocator, file_path: []const u8, descripti
     var meta_obj = cbor.ObjectMap.init(allocator);
     try meta_obj.put("name", cbor.CborValue.initString(file_name));
     try meta_obj.put("description", cbor.CborValue.initString(description));
-    try meta_obj.put("size", cbor.CborValue.initInteger(@intCast(file_content.len)));
+
+    const fileSize = file_content.len;
+
+    const file_size_u64 = @as(u64, fileSize); // явно преобразуем в u64
+    std.debug.print("File size: {d}\n", .{file_size_u64});
+    try meta_obj.put("size", cbor.CborValue.initInteger(@intCast(file_size_u64)));
     try meta_obj.put("contentType", cbor.CborValue.initString(contentTypeFromExtension(extension)));
     defer meta_obj.deinit();
 

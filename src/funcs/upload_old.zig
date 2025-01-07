@@ -1,7 +1,5 @@
 const std = @import("std");
 
-const upload_service = @import("../service/upload_service.zig");
-
 pub fn upload(args: []const [:0]u8) !void {
     if (args.len < 2) {
         std.debug.print("Usage: upload <file> <description>\n", .{});
@@ -30,14 +28,28 @@ pub fn upload(args: []const [:0]u8) !void {
     };
     _ = file_exists;
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+    var child = std.process.Child.init(&[_][]const u8{
+        "bun",
+        "index.ts",
+        file,
+        description,
+    }, std.heap.page_allocator);
 
-    upload_service.setHost("http://4ir.club");
+    child.cwd = "/home/alexstorm/evolve/experiments/kvio";
 
-    if (try upload_service.uploadFile(allocator, file, description)) |hash| {
-        defer allocator.free(hash); // Добавляем освобождение хеша
-        std.debug.print("File uploaded with hash: {s}\n", .{hash});
+    try child.spawn();
+    const term = try child.wait();
+
+    switch (term) {
+        .Exited => |code| {
+            if (code == 0) {
+                std.debug.print("\nUpload successful\n", .{});
+            } else {
+                std.debug.print("\nUpload failed with code: {d}\n", .{code});
+            }
+        },
+        else => {
+            std.debug.print("Process terminated abnormally\n", .{});
+        },
     }
 }
