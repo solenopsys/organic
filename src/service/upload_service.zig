@@ -81,8 +81,6 @@ pub fn uploadBlob(allocator: std.mem.Allocator, data: []const u8, token: []const
     const hash = try generateHash(allocator, data);
     defer allocator.free(hash); // Освобождаем hash в конце функции
 
-    std.debug.print("DATA : {s}\n", .{data});
-
     const key = try std.fmt.allocPrint(allocator, "blob.{s}", .{hash});
     defer allocator.free(key);
 

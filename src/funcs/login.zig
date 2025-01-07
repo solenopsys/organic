@@ -4,13 +4,31 @@ const TempLoginStorage = @import("../service/config.zig").TempLoginStorage;
 const LoginData = @import("../service/config.zig").LoginData;
 const gt = @import("../service/gen_token.zig");
 
-// const fetch = @import("../tools/http.zig").fetch;
-
 pub fn login(args: []const []const u8) !void {
     const allocator = std.heap.page_allocator;
 
     const user_id = args[0];
-    const password = args[1];
+
+    // Запрашиваем пароль через stdin
+    const stdin = std.io.getStdIn();
+    const stdout = std.io.getStdOut().writer();
+
+    try stdout.print("Enter password: ", .{});
+
+    var password_buf: [256]u8 = undefined;
+    var password_size: usize = undefined;
+
+    if (stdin.reader().readUntilDelimiterOrEof(&password_buf, '\n')) |maybe_password| {
+        if (maybe_password) |pw| {
+            password_size = pw.len;
+        } else {
+            return error.EmptyPassword;
+        }
+    } else |err| {
+        return err;
+    }
+
+    const password = password_buf[0..password_size];
 
     var storage = try TempLoginStorage.init(std.heap.page_allocator);
 

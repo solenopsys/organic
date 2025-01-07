@@ -11,7 +11,7 @@ pub const commands = [_]Command{
     },
     .{
         .name = "login",
-        .description = "Login to server [username] [password]",
+        .description = "Login to server [username]",
     },
 
     .{
