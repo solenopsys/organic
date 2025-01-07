@@ -6,10 +6,6 @@ const Command = struct {
 
 pub const commands = [_]Command{
     .{
-        .name = "upload",
-        .description = "Upload file to server [file] [description]",
-    },
-    .{
         .name = "help",
         .description = "Shows this help message",
     },
@@ -21,5 +17,9 @@ pub const commands = [_]Command{
     .{
         .name = "logout",
         .description = "Logout (forget token)",
+    },
+    .{
+        .name = "upload",
+        .description = "Upload file to server [file] [description]",
     },
 };

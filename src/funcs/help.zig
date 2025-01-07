@@ -17,7 +17,15 @@ pub fn showHelp(args: []const []const u8) !void {
     if (storage.isLoged()) {
         var loaded_data = try storage.loadLogin();
         defer loaded_data.deinit(allocator);
+
+        const login_data = try storage.loadLogin();
+
         std.debug.print("Autorization: {s}\n", .{loaded_data.login});
+
+        if (login_data.expired_date < std.time.timestamp()) {
+            std.debug.print("Token expired\n", .{});
+            return;
+        }
     } else {
         std.debug.print("Autorization: not logged\n", .{});
     }

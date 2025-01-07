@@ -11,7 +11,7 @@ pub fn setHost(host: []const u8) void {
     HOST = host;
 }
 
-fn doHttpRequest(allocator: std.mem.Allocator, method: std.http.Method, path: []const u8, body: ?[]const u8) ![]u8 {
+fn doHttpRequest(allocator: std.mem.Allocator, method: std.http.Method, path: []const u8, body: ?[]const u8, token: []const u8) ![]u8 {
     var client = std.http.Client{ .allocator = allocator };
     defer client.deinit();
 
@@ -27,6 +27,7 @@ fn doHttpRequest(allocator: std.mem.Allocator, method: std.http.Method, path: []
         .payload = body,
         .headers = .{
             .content_type = .{ .override = "application/octet-stream" },
+            .authorization = .{ .override = token },
         },
         .response_storage = .{ .dynamic = &response },
     });
@@ -76,7 +77,7 @@ pub fn contentTypeFromExtension(extension: ?[]const u8) []const u8 {
     return "text/plain";
 }
 
-pub fn uploadBlob(allocator: std.mem.Allocator, data: []const u8) ![]u8 {
+pub fn uploadBlob(allocator: std.mem.Allocator, data: []const u8, token: []const u8) ![]u8 {
     const hash = try generateHash(allocator, data);
     defer allocator.free(hash); // Освобождаем hash в конце функции
 
@@ -85,13 +86,13 @@ pub fn uploadBlob(allocator: std.mem.Allocator, data: []const u8) ![]u8 {
     const key = try std.fmt.allocPrint(allocator, "blob.{s}", .{hash});
     defer allocator.free(key);
 
-    const save_result = try save(allocator, key, data);
+    const save_result = try save(allocator, key, data, token);
     allocator.free(save_result);
 
     return try allocator.dupe(u8, hash); // Создаем новую копию для возврата
 }
 
-pub fn setMeta(allocator: std.mem.Allocator, hash: []const u8, meta: cbor.CborValue) ![]u8 {
+pub fn setMeta(allocator: std.mem.Allocator, hash: []const u8, meta: cbor.CborValue, token: []const u8) ![]u8 {
     var buf = std.ArrayList(u8).init(allocator);
     defer buf.deinit();
 
@@ -100,25 +101,25 @@ pub fn setMeta(allocator: std.mem.Allocator, hash: []const u8, meta: cbor.CborVa
     const key = try std.fmt.allocPrint(allocator, "meta.{s}", .{hash});
     defer allocator.free(key);
 
-    const result = try save(allocator, key, buf.items);
+    const result = try save(allocator, key, buf.items, token);
     defer allocator.free(result);
 
     return try allocator.dupe(u8, key);
 }
 
 // Save function
-pub fn save(allocator: std.mem.Allocator, key: []const u8, content: []const u8) ![]u8 {
+pub fn save(allocator: std.mem.Allocator, key: []const u8, content: []const u8, token: []const u8) ![]u8 {
     const path = try std.fmt.allocPrint(allocator, "/kvs/io/{s}", .{key});
     defer allocator.free(path);
 
-    return try doHttpRequest(allocator, .PUT, path, content);
+    return try doHttpRequest(allocator, .PUT, path, content, token);
 }
 
-pub fn uploadFile(allocator: std.mem.Allocator, file_path: []const u8, description: []const u8) !?[]u8 {
+pub fn uploadFile(allocator: std.mem.Allocator, file_path: []const u8, description: []const u8, token: []const u8) !?[]u8 {
     const file_content = try std.fs.cwd().readFileAlloc(allocator, file_path, std.math.maxInt(usize));
     defer allocator.free(file_content);
 
-    const hash = try uploadBlob(allocator, file_content);
+    const hash = try uploadBlob(allocator, file_content, token);
     defer allocator.free(hash); // Освобождаем исходный hash перед возвратом
 
     const file_name = std.fs.path.basename(file_path);
@@ -136,7 +137,7 @@ pub fn uploadFile(allocator: std.mem.Allocator, file_path: []const u8, descripti
     try meta_obj.put("contentType", cbor.CborValue.initString(contentTypeFromExtension(extension)));
     defer meta_obj.deinit();
 
-    const meta_result = try setMeta(allocator, hash, cbor.CborValue.initObject(meta_obj));
+    const meta_result = try setMeta(allocator, hash, cbor.CborValue.initObject(meta_obj), token);
     allocator.free(meta_result);
 
     return try allocator.dupe(u8, hash); // Создаем финальную копию для возврата

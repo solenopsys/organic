@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const upload_service = @import("../service/upload_service.zig");
+const TempLoginStorage = @import("../service/config.zig").TempLoginStorage;
 
 pub fn upload(args: []const [:0]u8) !void {
     if (args.len < 2) {
@@ -20,6 +21,20 @@ pub fn upload(args: []const [:0]u8) !void {
 
     const description = args[1];
 
+    var storage = try TempLoginStorage.init(std.heap.page_allocator);
+
+    if (!storage.isLoged()) {
+        std.debug.print("Not logged need: o login <user> <password>\n", .{});
+        return;
+    }
+
+    const login_data = try storage.loadLogin();
+
+    if (login_data.expired_date < std.time.timestamp()) {
+        std.debug.print("Token expired\n", .{});
+        return;
+    }
+
     // Проверяем существование файла
     const file_exists = std.fs.cwd().access(file_relative, .{}) catch |err| switch (err) {
         error.FileNotFound => {
@@ -36,7 +51,7 @@ pub fn upload(args: []const [:0]u8) !void {
 
     upload_service.setHost("http://4ir.club");
 
-    if (try upload_service.uploadFile(allocator, file, description)) |hash| {
+    if (try upload_service.uploadFile(allocator, file, description, login_data.token)) |hash| {
         defer allocator.free(hash); // Добавляем освобождение хеша
         std.debug.print("File uploaded with hash: {s}\n", .{hash});
     }
