@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const Token = struct { access_token: []u8, token_type: []u8, expires_in: u32 };
+pub const Token = struct { access_token: []u8, token_type: []u8, expires_in: u32 };
 
 // Объявляем функцию getToken с правильной сигнатурой
 pub fn getToken(

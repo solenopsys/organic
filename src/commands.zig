@@ -17,4 +17,9 @@ pub const commands = [_]Command{
         .name = "login",
         .description = "Login to server [username] [password]",
     },
+
+    .{
+        .name = "logout",
+        .description = "Logout (forget token)",
+    },
 };

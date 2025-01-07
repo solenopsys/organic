@@ -10,9 +10,12 @@ pub const LoginData = struct {
     login: []const u8,
     expired_date: i64,
 
-    pub fn init(alloc: std.mem.Allocator, login: []const u8) !LoginData {
+    pub fn init(alloc: std.mem.Allocator, token: []const u8, login: []const u8, expired_date: i64) !LoginData {
         return LoginData{
             .login = try alloc.dupe(u8, login),
+            .expired_date = expired_date,
+            .version = 1,
+            .token = try alloc.dupe(u8, token),
         };
     }
 
@@ -41,7 +44,7 @@ pub const TempLoginStorage = struct {
         };
     }
 
-    pub fn clear(self: *TempLoginStorage) void {
+    pub fn clear(self: *TempLoginStorage) !void {
         try fs.deleteFileAbsolute(self.temp_path);
     }
 
@@ -60,6 +63,10 @@ pub const TempLoginStorage = struct {
         try file.writeAll(json_string);
     }
 
+    pub fn isLoged(self: *TempLoginStorage) bool {
+        return (self.loadLogin() catch null) != null;
+    }
+
     pub fn loadLogin(self: *TempLoginStorage) !LoginData {
         const file = try fs.openFileAbsolute(self.temp_path, .{});
         defer file.close();
@@ -73,31 +80,8 @@ pub const TempLoginStorage = struct {
         defer parsed.deinit();
 
         // Создаём копию данных, так как parsed.value будет освобождена при parsed.deinit()
-        return try LoginData.init(self.allocator, parsed.value.login);
+        return try LoginData.init(self.allocator, parsed.value.token, parsed.value.login, parsed.value.expired_date);
     }
 };
 
 // Пример использования:
-pub fn main() !void {
-    var gpa = heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-
-    // Создаём хранилище
-    var storage = try TempLoginStorage.init(allocator);
-    defer storage.deinit();
-
-    // Создаём данные для сохранения
-    var login_data = try LoginData.init(allocator, "testuser");
-    defer login_data.deinit(allocator);
-
-    // Сохраняем в JSON
-    try storage.saveLogin(login_data);
-
-    // Загружаем из JSON
-    var loaded_data = try storage.loadLogin();
-    defer loaded_data.deinit(allocator);
-
-    // Проверяем
-    std.debug.print("Loaded login: {s}\n", .{loaded_data.login});
-}
