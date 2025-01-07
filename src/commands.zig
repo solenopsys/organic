@@ -19,6 +19,10 @@ pub const commands = [_]Command{
         .description = "Logout (forget token)",
     },
     .{
+        .name = "token",
+        .description = "Show token",
+    },
+    .{
         .name = "upload",
         .description = "Upload file to server [file] [description]",
     },
