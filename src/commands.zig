@@ -26,4 +26,8 @@ pub const commands = [_]Command{
         .name = "upload",
         .description = "Upload file to server [file] [description]",
     },
+    .{
+        .name = "container",
+        .description = "Build container [tag] [dockerfile]",
+    },
 };

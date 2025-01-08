@@ -37,7 +37,7 @@ pub fn login(args: []const []const u8) !void {
         return;
     }
 
-    const tokenRaw = try gt.getToken(std.heap.page_allocator, user_id, password);
+    const tokenRaw = try gt.getRefreshToken(std.heap.page_allocator, user_id, password);
 
     const token = gt.parseToken(std.heap.page_allocator, tokenRaw) catch |err| {
         std.debug.print("Error parsing token: {}\n", .{err});
@@ -46,7 +46,7 @@ pub fn login(args: []const []const u8) !void {
 
     const current_time = std.time.timestamp();
 
-    const exp_timestamp = current_time + @as(i64, token.expires_in);
+    const exp_timestamp = current_time + @as(i64, token.expires_in * 1000); // время в милисекндах
 
     var login_data = try LoginData.init(allocator, token.access_token, user_id, exp_timestamp);
     try storage.saveLogin(login_data);

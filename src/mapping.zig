@@ -3,6 +3,7 @@ const help = @import("funcs/help.zig").showHelp;
 const login = @import("funcs/login.zig").login;
 const logout = @import("funcs/logout.zig").logout;
 const token = @import("funcs/token.zig").token;
+const container = @import("funcs/container.zig").container;
 
 const std = @import("std");
 
@@ -13,6 +14,7 @@ pub const Command = struct {
 
 pub const mapping = [_]Command{
     .{ .name = "upload", .func = upload },
+    .{ .name = "container", .func = container },
     .{ .name = "help", .func = help },
     .{ .name = "login", .func = login },
     .{ .name = "logout", .func = logout },
