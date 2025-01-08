@@ -1,26 +1,13 @@
 const std = @import("std");
-
 const upload_service = @import("../service/upload_service.zig");
-const TempLoginStorage = @import("../service/config.zig").TempLoginStorage;
+const getTokenFromStorage = @import("../service/gen_berrer.zig").getTokenFromStorage;
+const Token = @import("../service/gen_token.zig").Token;
 
 pub fn token(args: []const [:0]u8) !void {
     _ = args;
 
-    var storage = try TempLoginStorage.init(std.heap.page_allocator);
+    // defer bearerToken.deinit(&bearerToken, allocator); // Используем метод deinit из структуры Token
+    const t = try getTokenFromStorage();
 
-    if (!storage.isLoged()) {
-        std.debug.print("Not logged need: o login <user> <password>\n", .{});
-        return;
-    }
-
-    const login_data = try storage.loadLogin();
-
-    if (login_data.expired_date < std.time.timestamp()) {
-        std.debug.print("Token expired\n", .{});
-        return;
-    }
-
-    // print token
-
-    std.debug.print("Token: {s}\n", .{login_data.token});
+    std.debug.print("Bearer token: {s}\n", .{t});
 }

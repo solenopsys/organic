@@ -1,6 +1,7 @@
 const std = @import("std");
 const upload_service = @import("../service/upload_service.zig");
 const TempLoginStorage = @import("../service/config.zig").TempLoginStorage;
+const getTokenFromStorage = @import("../service/gen_berrer.zig").getTokenFromStorage;
 
 pub const UploadResult = struct {
     hash: []const u8,
@@ -35,10 +36,7 @@ pub const UploadJob = struct {
             return error.NotLoggedIn;
         }
 
-        const login_data = try storage.loadLogin();
-        if (login_data.expired_date < std.time.timestamp()) {
-            return error.TokenExpired;
-        }
+        const t = try getTokenFromStorage();
 
         // Проверяем существование файла
         std.fs.cwd().access(msg.file_path, .{}) catch |err| {
@@ -53,7 +51,11 @@ pub const UploadJob = struct {
 
         upload_service.setHost("http://4ir.club");
 
-        if (try upload_service.uploadFile(msg.allocator, msg.file_path, msg.description, login_data.token)) |hash| {
+        const allocator = std.heap.page_allocator;
+
+        const berrer = try std.fmt.allocPrint(allocator, "Bearer {s}", .{t});
+
+        if (try upload_service.uploadFile(msg.allocator, msg.file_path, msg.description, berrer)) |hash| {
             return UploadResult{ .hash = hash };
         }
 
