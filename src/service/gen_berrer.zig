@@ -7,40 +7,39 @@ pub const BerrerToken = struct { access_token: []u8, token_type: []u8 };
 pub fn getBearerToken(
     allocator: std.mem.Allocator,
     refresh: []const u8,
-) ![]u8 { //todo
+) ![]u8 {
     // Формируем JSON для тела запроса
-    var json_buf = std.ArrayList(u8).init(allocator);
-    defer json_buf.deinit();
-
-    try std.json.stringify(.{
+    const json_buf = try std.json.Stringify.valueAlloc(allocator, .{
         .refresh_token = refresh,
-    }, .{}, json_buf.writer());
+    }, .{});
+    defer allocator.free(json_buf);
 
     var client = std.http.Client{ .allocator = allocator };
     defer client.deinit();
 
-    var response = std.ArrayList(u8).init(allocator);
+    const uri = try std.Uri.parse("http://auth.solenopsys.org/auth/token/bearer");
 
-    const res = try client.fetch(
-        .{
-            .location = .{
-                .url = "http://auth.solenopsys.org/auth/token/bearer",
-            },
-            .method = .POST,
-            .payload = json_buf.items,
-            .headers = .{
-                .content_type = .{ .override = "application/json" },
-            },
-            .response_storage = .{ .dynamic = &response },
+    var req = try client.request(.POST, uri, .{
+        .headers = .{
+            .content_type = .{ .override = "application/json" },
         },
-    );
+    });
+    defer req.deinit();
 
-    // Выводим ответ
-    std.debug.print("Status: {d}\n", .{res.status});
+    req.transfer_encoding = .{ .content_length = json_buf.len };
+    var body_writer = try req.sendBodyUnflushed(&.{});
+    try body_writer.writer.writeAll(json_buf);
+    try body_writer.end();
+    try req.connection.?.flush();
 
-    const result = try allocator.dupe(u8, response.items);
-    response.deinit();
-    return result;
+    var redirect_buffer: [8192]u8 = undefined;
+    var response = try req.receiveHead(&redirect_buffer);
+
+    std.debug.print("Status: {d}\n", .{@intFromEnum(response.head.status)});
+
+    // Читаем тело ответа
+    var reader = response.reader(&.{});
+    return try reader.allocRemaining(allocator, .unlimited);
 }
 
 pub fn parseBerrerToken(allocator: std.mem.Allocator, tokenJson: []const u8) !BerrerToken {

@@ -12,7 +12,7 @@ pub fn showHelp(args: []const []const u8) !void {
     const allocator = gpa.allocator();
 
     var storage = try TempLoginStorage.init(allocator);
-    // defer storage.deinit();
+    defer storage.deinit();
 
     if (storage.isLoged()) {
         var loaded_data = try storage.loadLogin();

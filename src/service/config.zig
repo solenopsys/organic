@@ -35,13 +35,17 @@ pub const TempLoginStorage = struct {
         const tmp_dir_path = process.getEnvVarOwned(arena.allocator(), "TMPDIR") catch "/tmp";
 
         // Создаём уникальное имя файла
-        var path_buffer: [fs.MAX_PATH_BYTES]u8 = undefined;
+        var path_buffer: [fs.max_path_bytes]u8 = undefined;
         const temp_path = try std.fmt.bufPrint(&path_buffer, "{s}/organic_config.json", .{tmp_dir_path});
 
         return TempLoginStorage{
             .allocator = allocator,
             .temp_path = try allocator.dupe(u8, temp_path),
         };
+    }
+
+    pub fn deinit(self: *TempLoginStorage) void {
+        self.allocator.free(self.temp_path);
     }
 
     pub fn clear(self: *TempLoginStorage) !void {
@@ -56,7 +60,7 @@ pub const TempLoginStorage = struct {
         defer file.close();
 
         // Создаём JSON строку
-        const json_string = try json.stringifyAlloc(self.allocator, login_data, .{});
+        const json_string = try std.json.Stringify.valueAlloc(self.allocator, login_data, .{});
         defer self.allocator.free(json_string);
 
         // Записываем в файл

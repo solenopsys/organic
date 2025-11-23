@@ -6,9 +6,11 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "organic",
-        .root_source_file = .{ .cwd_relative = "src/organic.zig" },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/organic.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     // Эти настройки применяются после создания исполняемого файла

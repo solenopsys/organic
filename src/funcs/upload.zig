@@ -16,7 +16,7 @@ pub fn upload(args: []const [:0]u8) !void {
     const allocator = gpa.allocator();
 
     // Получаем абсолютный путь
-    var buf: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    var buf: [std.fs.max_path_bytes]u8 = undefined;
     const cwd = try std.process.getCwd(&buf);
     const file = try std.fs.path.join(allocator, &[_][]const u8{ cwd, args[0] });
     defer allocator.free(file);

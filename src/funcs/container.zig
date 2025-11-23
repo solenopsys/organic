@@ -9,7 +9,7 @@ pub fn container(args: []const [:0]u8) !void {
     const tag = args[0];
 
     // Получаем текущую директорию
-    var buf: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    var buf: [std.fs.max_path_bytes]u8 = undefined;
     const cwd = try std.process.getCwd(&buf);
 
     // Use var instead of const since we may modify it

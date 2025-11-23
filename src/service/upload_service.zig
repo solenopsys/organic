@@ -15,28 +15,38 @@ fn doHttpRequest(allocator: std.mem.Allocator, method: std.http.Method, path: []
     var client = std.http.Client{ .allocator = allocator };
     defer client.deinit();
 
-    var response = std.ArrayList(u8).init(allocator);
-    defer response.deinit();
-
     const url = try std.fmt.allocPrint(allocator, "{s}{s}", .{ HOST, path });
     defer allocator.free(url);
 
-    const res = try client.fetch(.{
-        .location = .{ .url = url },
-        .method = method,
-        .payload = body,
+    const uri = try std.Uri.parse(url);
+
+    var req = try client.request(method, uri, .{
         .headers = .{
             .content_type = .{ .override = "application/octet-stream" },
             .authorization = .{ .override = token },
         },
-        .response_storage = .{ .dynamic = &response },
     });
+    defer req.deinit();
 
-    if (res.status != .ok) {
+    if (body) |payload| {
+        req.transfer_encoding = .{ .content_length = payload.len };
+        var body_writer = try req.sendBodyUnflushed(&.{});
+        try body_writer.writer.writeAll(payload);
+        try body_writer.end();
+        try req.connection.?.flush();
+    } else {
+        try req.sendBodiless();
+    }
+
+    var redirect_buffer: [8192]u8 = undefined;
+    var response = try req.receiveHead(&redirect_buffer);
+
+    if (response.head.status != .ok) {
         return error.HttpError;
     }
 
-    return try response.toOwnedSlice();
+    var reader = response.reader(&.{});
+    return try reader.allocRemaining(allocator, .unlimited);
 }
 
 pub fn generateHash(allocator: std.mem.Allocator, data: []const u8) ![]u8 {
@@ -91,7 +101,7 @@ pub fn uploadBlob(allocator: std.mem.Allocator, data: []const u8, token: []const
 }
 
 pub fn setMeta(allocator: std.mem.Allocator, hash: []const u8, meta: cbor.CborValue, token: []const u8) ![]u8 {
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     try meta.serialize(buf.writer());

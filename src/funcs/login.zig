@@ -10,25 +10,21 @@ pub fn login(args: []const []const u8) !void {
     const user_id = args[0];
 
     // Запрашиваем пароль через stdin
-    const stdin = std.io.getStdIn();
-    const stdout = std.io.getStdOut().writer();
-
-    try stdout.print("Enter password: ", .{});
+    std.debug.print("Enter password: ", .{});
 
     var password_buf: [256]u8 = undefined;
-    var password_size: usize = undefined;
+    var password_len: usize = 0;
 
-    if (stdin.reader().readUntilDelimiterOrEof(&password_buf, '\n')) |maybe_password| {
-        if (maybe_password) |pw| {
-            password_size = pw.len;
-        } else {
-            return error.EmptyPassword;
-        }
-    } else |err| {
-        return err;
+    while (password_len < password_buf.len) {
+        var byte_buf: [1]u8 = undefined;
+        const n = std.posix.read(std.posix.STDIN_FILENO, &byte_buf) catch break;
+        if (n == 0) break;
+        if (byte_buf[0] == '\n') break;
+        password_buf[password_len] = byte_buf[0];
+        password_len += 1;
     }
-
-    const password = password_buf[0..password_size];
+    if (password_len == 0) return error.EmptyPassword;
+    const password = password_buf[0..password_len];
 
     var storage = try TempLoginStorage.init(std.heap.page_allocator);
 

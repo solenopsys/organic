@@ -242,7 +242,7 @@ fn serializeArray(value: []const CborValue, writer: anytype) Error!void {
 test "CBOR float serialization" {
     const allocator = std.testing.allocator;
 
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     const pi: f64 = 3.14159;
@@ -275,7 +275,7 @@ test "CBOR serialization" {
     try obj.put("string", CborValue.initString("test"));
 
     // Сериализуем в буфер
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     try CborValue.initObject(obj).serialize(buf.writer());
@@ -300,7 +300,7 @@ test "CBOR serialization" {
 
 test "CBOR negative integers" {
     const allocator = std.testing.allocator;
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     try CborValue.initInteger(-42).serialize(buf.writer());
@@ -314,7 +314,7 @@ test "CBOR negative integers" {
 
 test "CBOR array" {
     const allocator = std.testing.allocator;
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     const arr = [_]CborValue{
@@ -379,7 +379,7 @@ test "Complex CBOR serialization" {
     try root.put("port", CborValue.initInteger(8080));
     try root.put("enabled", CborValue.initBoolean(true));
 
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
     try CborValue.initObject(root).serialize(buf.writer());
 
@@ -582,7 +582,7 @@ test "CBOR serialization with nested object 2" {
     try root.put("answer", CborValue.initInteger(42));
     try root.put("pi_approx", CborValue.initFloat(3.14159));
 
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     try CborValue.initObject(root).serialize(buf.writer());
@@ -620,7 +620,7 @@ test "Мetadata CBOR serialization" {
     try meta_obj.put("size", CborValue.initInteger(451));
     try meta_obj.put("contentType", CborValue.initString("text/plain"));
 
-    var buf = std.ArrayList(u8).init(allocator);
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
     try CborValue.initObject(meta_obj).serialize(buf.writer());
